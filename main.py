@@ -1,7 +1,6 @@
 import requests
 import re
 import time
-import threading
 
 def gen_random_email():
     cookies = {
@@ -392,8 +391,8 @@ def register_account():
         return
 
     print(f'Reg yonezu status code: {reg_yonezu}, {email}')
-    print('Waiting for email... (7s)')
-    time.sleep(7)
+    print('Waiting for email... (10s)')
+    time.sleep(10)
 
     print('Trying to get email...')
     got_key_and_num = get_yonezu_first()
@@ -413,11 +412,9 @@ def register_account():
     yonezu_verify_url = get_yonezu_second(email, num, key)
     if not yonezu_verify_url:
         print('Failed to get yonezu verify URL')
-        clear_mails()
         return
 
     print(f'Got verify URL: {yonezu_verify_url}')
-    clear_mails()
 
     idtwo = register_account_first(yonezu_verify_url)
     if not idtwo:
@@ -438,11 +435,8 @@ def register_account():
         f.write(f"{account_info}\n")
     print('Saved to accounts.txt')
 
-threads = []
-for _ in range(5):
-    thread = threading.Thread(target=register_account)
-    threads.append(thread)
-    thread.start()
-
-for thread in threads:
-    thread.join()
+clear_mails()
+while (True):
+    register_account()
+    clear_mails()
+    time.sleep(1)
