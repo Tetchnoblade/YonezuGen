@@ -379,54 +379,68 @@ def register_account_final(verify_url, idtwo):
     else:
         return False
 
-def gen_main():
+def register_account():
     email = gen_random_email()
-    if email:
-        print('Registering acc...')
-        reg_yonezu = send_yonezu_email(email)
-        if reg_yonezu:
-            print(f'reg yonezu status code == {reg_yonezu}, {email}')
-            print('waiting email... (7s)')
-            time.sleep(7)
-            print('trying to get email...')
-            got_key_and_num = get_yonezu_first()
-            if got_key_and_num:
-                num = re.search(r"'(\d+)'", got_key_and_num).group(1)
-                key = re.search(r"'([a-f0-9]{32})'", got_key_and_num).group(1)
-                print(f'num: {num}')
-                print(f'key: {key}')
-                yonezu_verify_url = get_yonezu_second(email, num, key)
-                if yonezu_verify_url:
-                    print(f'Got verify url {yonezu_verify_url}')
-                    clear_mails()
-                    idtwo = register_account_first(yonezu_verify_url)
-                    if idtwo:
-                        real_idtwo = idtwo.replace('<input type="hidden" name="id2" value="', '')
-                        print(f'final register part')
-                        reg_final = register_account_final(yonezu_verify_url, real_idtwo)
-                        if reg_final:
-                            print(f'Registered account! {email}:Aspw0101010101')
-                            acc = f'{email}:Aspw0101010101'
-                            f = open("accounts.txt", "a")
-                            f.write(f"{acc}\n")
-                            print('saved to accounts.txt')
-                        else:
-                            print('failed to reg final')
-                    else:
-                        print('failed to reg first')
-                else:
-                    print('failed to get yonezu verify url')
-                    clear_mails()
-            else:
-                print('failed to get email')
-        else:
-            print(f'Reg yonezu failed {reg_yonezu}')
-    else:
+    if not email:
         print('Failed to generate email')
+        return
+
+    print('Registering account...')
+    reg_yonezu = send_yonezu_email(email)
+    if not reg_yonezu:
+        print(f'Reg yonezu failed with status code: {reg_yonezu}')
+        return
+
+    print(f'Reg yonezu status code: {reg_yonezu}, {email}')
+    print('Waiting for email... (7s)')
+    time.sleep(7)
+
+    print('Trying to get email...')
+    got_key_and_num = get_yonezu_first()
+    if not got_key_and_num:
+        print('Failed to retrieve email')
+        return
+
+    try:
+        num = re.search(r"'(\d+)'", got_key_and_num).group(1)
+        key = re.search(r"'([a-f0-9]{32})'", got_key_and_num).group(1)
+        print(f'num: {num}')
+        print(f'key: {key}')
+    except AttributeError:
+        print('Failed to extract num and key from the email')
+        return
+
+    yonezu_verify_url = get_yonezu_second(email, num, key)
+    if not yonezu_verify_url:
+        print('Failed to get yonezu verify URL')
+        clear_mails()
+        return
+
+    print(f'Got verify URL: {yonezu_verify_url}')
+    clear_mails()
+
+    idtwo = register_account_first(yonezu_verify_url)
+    if not idtwo:
+        print('Failed to register first part')
+        return
+
+    real_idtwo = idtwo.replace('<input type="hidden" name="id2" value="', '').strip()
+    print('Final register part')
+
+    reg_final = register_account_final(yonezu_verify_url, real_idtwo)
+    if not reg_final:
+        print('Failed to register final part')
+        return
+
+    print(f'Registered account! {email}:Aspw0101010101')
+    account_info = f'{email}:Aspw0101010101'
+    with open("accounts.txt", "a") as f:
+        f.write(f"{account_info}\n")
+    print('Saved to accounts.txt')
 
 threads = []
 for _ in range(5):
-    thread = threading.Thread(target=gen_main)
+    thread = threading.Thread(target=register_account)
     threads.append(thread)
     thread.start()
 
